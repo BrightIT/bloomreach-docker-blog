@@ -1,0 +1,82 @@
+version: '3.7'
+
+services:
+  db:
+    container_name: blodoc-db
+    image: mysql:5.7
+    ports:
+      - "3306:3306"
+    networks:
+      - blodoc-network
+    volumes:
+      - ./db:/docker-entrypoint-initdb.d
+      - db:/var/lib/mysql
+    environment:
+      - 'MYSQL_ROOT_PASSWORD=${DB_PASS}'
+
+  auth:
+    container_name: blodoc-auth-1
+    image: ${REGISTRY}/blodoc-base:${BASE_VERSION}
+    depends_on:
+      - db
+    ports:
+      - "${BLOOMREACH_CMS_PORT}:8080"
+    networks:
+      - blodoc-network
+    environment:
+      - 'BLOOMREACH_DB_HOST=${BLOOMREACH_DB_HOST}'
+      - 'ELASTICSEARCH_HOST=${ELASTICSEARCH_HOST}'
+    volumes:
+      - ../cms/target/cms.war:${CATALINA_BASE}/webapps/cms.war
+      - ../site/webapp/target/site.war:${CATALINA_BASE}/webapps/site.war
+
+  site-1:
+    container_name: blodoc-site-1
+    image: ${REGISTRY}/blodoc-base:${BASE_VERSION}
+    depends_on:
+      - db
+    ports:
+      - "${BLOOMREACH_SITE_1_PORT}:8080"
+    networks:
+      - blodoc-network
+    environment:
+      - 'BLOOMREACH_DB_HOST=${BLOOMREACH_DB_HOST}'
+      - 'ELASTICSEARCH_HOST=${ELASTICSEARCH_HOST}'
+    volumes:
+      - ../site/webapp/target/site.war:${CATALINA_BASE}/webapps/site.war
+      - ../platform/target/platform.war:${CATALINA_BASE}/webapps/platform.war
+
+
+  site-2:
+    container_name: blodoc-site-2
+    image: ${REGISTRY}/blodoc-base:${BASE_VERSION}
+    depends_on:
+      - db
+    ports:
+      - "${BLOOMREACH_SITE_2_PORT}:8080"
+    networks:
+      - blodoc-network
+    environment:
+      - 'BLOOMREACH_DB_HOST=${BLOOMREACH_DB_HOST}'
+      - 'ELASTICSEARCH_HOST=${ELASTICSEARCH_HOST}'
+    volumes:
+      - ../site/webapp/target/site.war:${CATALINA_BASE}/webapps/site.war
+      - ../platform/target/platform.war:${CATALINA_BASE}/webapps/platform.war
+
+  # blodoc-search:
+  #   container_name: blodoc-search
+  #   image: elasticsearch:5.6
+  #   environment:
+  #     - "discovery.type=single-node"
+  #   ports:
+  #     - "9200:9200"
+  #   networks:
+  #     - blodoc-network
+
+networks:
+  blodoc-network:
+    driver: bridge
+    name: blodoc-net
+
+volumes:
+  db:
